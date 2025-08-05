@@ -1,0 +1,374 @@
+import React, { useState } from 'react';
+
+// SVG Icons as components for better maintainability
+const ChevronDownIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const AlertIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M8 4.5V8M8 11.5h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+interface DropdownProps {
+  label: string;
+  placeholder: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  required?: boolean;
+  options?: string[];
+  isValid?: boolean;
+}
+
+const Dropdown: React.FC<DropdownProps> = ({ 
+  label, 
+  placeholder, 
+  value, 
+  onChange, 
+  required = false,
+  options = [],
+  isValid = true
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSelect = (option: string) => {
+    onChange?.(option);
+    setIsOpen(false);
+  };
+
+  const getBorderClass = () => {
+    if (!isValid) return "border-red-300";
+    if (value) return "border-green-300";
+    return "border-[#dadce5]";
+  };
+
+  return (
+    <div className="flex flex-col gap-1 w-full">
+      <div className="flex items-center gap-1">
+        <label className="text-sm font-semibold text-[#2a2c35]">
+          {label}
+        </label>
+        {required && <span className="text-red-500">*</span>}
+        {value && isValid && (
+          <CheckIcon className="text-green-500 w-4 h-4" />
+        )}
+      </div>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`w-full h-9 px-2 py-2 bg-white border ${getBorderClass()} rounded-[3px] flex items-center justify-between text-left text-sm text-[#9a9ca5] hover:border-[#128297] focus:outline-none focus:border-[#128297]`}
+        >
+          <span className={value ? "text-[#2a2c35]" : "text-[#9a9ca5]"}>
+            {value || placeholder}
+          </span>
+          <ChevronDownIcon />
+        </button>
+        
+        {isOpen && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#dadce5] rounded-[3px] shadow-lg z-10 max-h-48 overflow-y-auto">
+            {options.map((option, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleSelect(option)}
+                className="w-full px-2 py-2 text-left text-sm text-[#2a2c35] hover:bg-gray-50 first:rounded-t-[3px] last:rounded-b-[3px]"
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface ButtonProps {
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary';
+  onClick?: () => void;
+  type?: 'button' | 'submit';
+  disabled?: boolean;
+}
+
+const Button: React.FC<ButtonProps> = ({ 
+  children, 
+  variant = 'primary', 
+  onClick, 
+  type = 'button',
+  disabled = false
+}) => {
+  const baseClasses = "px-3 py-2 rounded-[3px] text-sm font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
+  
+  const variantClasses = {
+    primary: "bg-[#128297] text-white hover:bg-[#0f6b7d] focus:ring-[#128297] disabled:bg-gray-300 disabled:text-gray-500",
+    secondary: "bg-white text-[#128297] border border-[#128297] hover:bg-[#f0f9fa] focus:ring-[#128297] disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300"
+  };
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseClasses} ${variantClasses[variant]} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      {children}
+    </button>
+  );
+};
+
+interface ValidationState {
+  isValid: boolean;
+  message: string;
+  type: 'success' | 'warning' | 'error';
+  progress: number; // 0-100
+}
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedUsersCount?: number;
+}
+
+const ModalVersionC: React.FC<ModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  selectedUsersCount = 6 
+}) => {
+  const [action, setAction] = useState<string>('');
+  const [subscriptionRoles, setSubscriptionRoles] = useState<string>('');
+  const [appRoles, setAppRoles] = useState<string>('');
+  const [selectedApp, setSelectedApp] = useState<string>('');
+
+  const actionOptions = [
+    'Add roles',
+    'Remove roles',
+    'Replace roles'
+  ];
+
+  const roleOptions = [
+    'Admin',
+    'Editor',
+    'Viewer',
+    'Manager',
+    'Contributor'
+  ];
+
+  const appOptions = [
+    'Customer Portal',
+    'Admin Dashboard',
+    'Analytics Platform',
+    'Marketing Suite',
+    'Support Center'
+  ];
+
+  const getValidationState = (): ValidationState => {
+    if (!action) {
+      return {
+        isValid: false,
+        message: "Select an action to continue",
+        type: 'error',
+        progress: 0
+      };
+    }
+    
+    if (!subscriptionRoles && !appRoles) {
+      return {
+        isValid: false,
+        message: "Choose at least one role type",
+        type: 'warning',
+        progress: 33
+      };
+    }
+    
+    if (appRoles && !selectedApp) {
+      return {
+        isValid: false,
+        message: "Select which app for the app roles",
+        type: 'warning',
+        progress: 75
+      };
+    }
+    
+    return {
+      isValid: true,
+      message: "Ready to save changes",
+      type: 'success',
+      progress: 100
+    };
+  };
+
+  const resetForm = () => {
+    setAction('');
+    setSubscriptionRoles('');
+    setAppRoles('');
+    setSelectedApp('');
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  const handleSave = () => {
+    console.log('Saving changes:', {
+      action,
+      subscriptionRoles,
+      appRoles,
+      selectedApp: appRoles ? selectedApp : undefined
+    });
+    resetForm();
+    onClose();
+  };
+
+  const validationState = getValidationState();
+  const canSave = validationState.isValid;
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded border border-[#eaecf1] w-full max-w-md mx-4">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-4 py-[15px] border-b border-[#dadce5]">
+          <h2 className="text-[22.78px] font-semibold text-[#2a2c35] leading-[1.3]">
+            Change permissions? (Version C)
+          </h2>
+          <button
+            onClick={handleClose}
+            className="p-1 text-[#6a6c75] hover:text-[#2a2c35] transition-colors"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="px-4 pt-4 pb-6">
+          <div className="space-y-4">
+            <p className="text-sm text-[#2a2c35]">
+              Update roles or apps for the{' '}
+              <span className="font-bold">{selectedUsersCount} selected users</span>.
+            </p>
+
+            {/* Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600">Progress</span>
+                <span className="text-gray-600">{validationState.progress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    validationState.type === 'success' ? 'bg-green-500' :
+                    validationState.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${validationState.progress}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Live Validation Status */}
+            <div className={`flex items-center gap-2 p-3 rounded border ${
+              validationState.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+              validationState.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+              'bg-red-50 border-red-200 text-red-800'
+            }`}>
+              {validationState.type === 'success' ? (
+                <CheckIcon className="flex-shrink-0" />
+              ) : (
+                <AlertIcon className="flex-shrink-0" />
+              )}
+              <span className="text-sm font-medium">{validationState.message}</span>
+            </div>
+
+            <Dropdown
+              label="What would you like to do?"
+              placeholder="Select how you want to update users"
+              value={action}
+              onChange={setAction}
+              required
+              options={actionOptions}
+              isValid={!!action}
+            />
+
+            {action && (
+              <>
+                <p className="text-sm text-[#2a2c35]">
+                  Select at least one of the following:
+                </p>
+
+                <Dropdown
+                  label="Subscription level roles"
+                  placeholder="Select roles"
+                  value={subscriptionRoles}
+                  onChange={setSubscriptionRoles}
+                  options={roleOptions}
+                  isValid={!!(subscriptionRoles || appRoles)}
+                />
+
+                <Dropdown
+                  label="App level roles"
+                  placeholder="Select roles"
+                  value={appRoles}
+                  onChange={(value) => {
+                    setAppRoles(value);
+                    if (!value) {
+                      setSelectedApp('');
+                    }
+                  }}
+                  options={roleOptions}
+                  isValid={!!(subscriptionRoles || appRoles)}
+                />
+
+                {appRoles && (
+                  <Dropdown
+                    label="Select app"
+                    placeholder="Choose which app"
+                    value={selectedApp}
+                    onChange={setSelectedApp}
+                    required
+                    options={appOptions}
+                    isValid={!!selectedApp}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="flex items-center justify-end gap-2 px-4 py-4 border-t border-[#dadce5]">
+          <Button variant="secondary" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleSave}
+            disabled={!canSave}
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ModalVersionC; 
